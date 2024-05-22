@@ -16,17 +16,18 @@ It looks for low confidence items and outliers humans should review
 """
 
 import torch
-import torch.nn as nn
-import torch.nn.functional as F
-import torch.optim as optim
-import random
-import math
-import datetime
-import csv
-import re
-import os
-from random import shuffle
-from collections import defaultdict    
+import torch.nn as nn #pytorch构建神经网络的库
+import torch.nn.functional as F #pytorch神经网络函数库，如激活函数和损失函数
+import torch.optim as optim #pytorch优化器库，包含常见的优化算法，如SGD、Adam等
+import random #python随机数库
+import math #python数学库，包含一些基本数学函数和常数
+import datetime #python日期时间库
+import csv #python csv文件读写库，用于读写csv文件
+import re #python正则表达式库，用于处理和匹配字符串
+import os #python操作系统库，用于操作文件和目录
+from random import shuffle #random库的函数，用于随机打乱列表
+#collections库是Python内建的一个集合模块，实现了特殊的容器数据类型，提供了 Python 内置的通用数据类型（dict、list、set、tuple）的替代选择
+from collections import defaultdict #字典的子类，提供了一个工厂函数，为字典查询提供了默认值 
 
 
 __author__ = "Robert Munro"
@@ -35,38 +36,38 @@ __version__ = "1.0.1"
 
 # settings
 
-minimum_evaluation_items = 1200 # annotate this many randomly sampled items first for evaluation data before creating training data
-minimum_training_items = 400 # minimum number of training items before we first train a model
+minimum_evaluation_items = 1200 # 用于评估数据的最小随机采样项数。在创建训练数据之前，首先对这么多的随机采样项进行注释。
+minimum_training_items = 400 # 首次训练模型之前的最小训练项数
 
-epochs = 10 # number of epochs per training session
-select_per_epoch = 200  # number to select per epoch per label
+epochs = 10 # 每次训练会话的周期数
+select_per_epoch = 200  # 每个周期每个标签选择的数量
 
-
+#创建两个空列表
 data = []
 test_data = []
 
-# directories with data
-unlabeled_data = "unlabeled_data/unlabeled_data.csv"
+# 三个CSV文件的路径
+unlabeled_data = "unlabeled_data/unlabeled_data.csv" # 未标记的数据路径
 
-evaluation_related_data = "evaluation_data/related.csv"
-evaluation_not_related_data = "evaluation_data/not_related.csv"
+evaluation_related_data = "evaluation_data/related.csv" # 评估数据路径
+evaluation_not_related_data = "evaluation_data/not_related.csv" # 不相关评估数据路径
 
-#validation_related_data # not used in this example
-#validation_not_related_data # not used in this example
+#validation_related_data # 验证数据路径，这里没有使用
+#validation_not_related_data # 不相关验证数据路径，这里没有使用
 
-training_related_data = "training_data/related.csv"
-training_not_related_data = "training_data/not_related.csv"
-
-
-already_labeled = {} # tracking what is already labeled
-feature_index = {} # feature mapping for one-hot encoding
+training_related_data = "training_data/related.csv" #训练数据路径
+training_not_related_data = "training_data/not_related.csv" # 不相关训练数据路径
 
 
-def load_data(filepath, skip_already_labeled=False):
+already_labeled = {} # 空字典，追踪已经标记的数据
+feature_index = {} # 空字典，用来存储特征映射（feature mapping），用于独热编码（one-hot encoding）
+
+#定义函数load_data，用于从CSV文件中加载数据
+def load_data(filepath, skip_already_labeled=False):#接受两个参数，文件路径filepath和skip_already_labeled表示是否跳过已标记的数据
     # csv format: [ID, TEXT, LABEL, SAMPLING_STRATEGY, CONFIDENCE]
-    with open(filepath, 'r') as csvfile:
-        data = []
-        reader = csv.reader(csvfile)
+    with open(filepath, 'r') as csvfile: #以读取模式打开filepath路径的文件，存储为变量csvfile
+        data = [] #data用来存储数据
+        reader = csv.reader(csvfile) #使用csv库的reader函数读取csvfile文件，存储为变量reader
         for row in reader:
             if skip_already_labeled and row[0] in already_labeled:
                 continue
