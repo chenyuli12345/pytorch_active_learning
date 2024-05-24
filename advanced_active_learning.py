@@ -43,41 +43,45 @@ class AdvancedActiveLearning():
         self.diversity_sampling = DiversitySampling(self.verbose)
 
 
-    def get_clustered_uncertainty_samples(self, model, unlabeled_data, method, feature_method,
-                                perc_uncertain = 0.1, num_clusters=20, max_epochs=10, limit=10000):
-        """Gets the most uncertain items and then clusters the, sampling from each cluster
-        
-        Keyword arguments:
-            model -- machine learning model to get predictions from to determine uncertainty
-            unlabeled_data -- data that does not yet have a label
-            method -- method for uncertainty sampling (eg: least_confidence())
-            feature_method -- the method for extracting features from your data
-            perc_uncertain -- percentage of items through uncertainty sampling to cluster
-            num_clusters -- the number of clusters to create
-            max_epochs -- maximum number of epochs to create clusters
-            limit -- sample from only this many predictions for faster sampling (-1 = no limit)      
+    def get_clustered_uncertainty_samples(self, model, unlabeled_data, method, feature_method, perc_uncertain = 0.1, num_clusters=20, max_epochs=10, limit=10000):
+        #接受几个参数，model代表使用的模型，unlabeled_data代表尚未标记的数据，method代表不确定性采样的方法，feature_method代表从数据中提取特征的方法，
+        #perc_uncertain代表通过不确定性采样进行聚类的项百分比（默认10%），num_clusters代表要创建的聚类数量（默认20），max_epochs代表创建聚类的最大轮次（默认10），limit代表仅从指定数量的预测中进行采样以加快采样速度（默认10000）
+        """
+        获取最不确定的项，然后对其进行聚类，从每个聚类中进行采样
+        关键词参数：
+        - `model` -- 用于获取预测以确定不确定性的机器学习模型
+        - `unlabeled_data` -- 尚未标记的数据
+        - `method` -- 用于不确定性采样的方法（例如：least_confidence()）
+        - `feature_method` -- 从数据中提取特征的方法
+        - `perc_uncertain` -- 通过不确定性采样进行聚类的项目百分比
+        - `num_clusters` -- 要创建的聚类数量
+        - `max_epochs` -- 创建聚类的最大轮次
+        - `limit` -- 仅从指定数量的预测中进行采样以加快采样速度（-1表示无限制）
         """ 
-                
-        if limit > 0:
-            shuffle(unlabeled_data)
-            unlabeled_data = unlabeled_data[:limit]            
-        uncertain_count = math.ceil(len(unlabeled_data) * perc_uncertain)
+        #先根据采样限制取打乱的未标记数据集的limit个数据
+        if limit > 0: #如果limit大于0，即是否设置了采样限制
+            shuffle(unlabeled_data) #若设置了采样限制，则打乱未标记数据的顺序
+            unlabeled_data = unlabeled_data[:limit]  #若设置了采样限制，则只取前limit个数据
+
+        #计算不确定性采样的数量
+        uncertain_count = math.ceil(len(unlabeled_data) * perc_uncertain) #首先计算选取的未标记数据的数量乘上百分比，然后向上取整（math.ceil）
         
-        uncertain_samples = self.uncertainty_sampling.get_samples(model, unlabeled_data, method, 
-                                                                feature_method, uncertain_count, limit=limit)
-                    
+        #调用不确定性采样方法的get_samples函数，获取不确定性采样的数据uncertain_samples
+        uncertain_samples = self.uncertainty_sampling.get_samples(model, unlabeled_data, method, feature_method, uncertain_count, limit=limit)
+    
+        #调用多样性采样的get_cluster_samples函数，获取聚类的数据samples
         samples = self.diversity_sampling.get_cluster_samples(uncertain_samples, 
                                                                 num_clusters=num_clusters)
         
+        #对于最终获取的数据样本samples中的每一项item，将其第四个元素（即item[3]）设置为方法名加上原来的item[3]（也是一个方法名）
         for item in samples:
             item[3] = method.__name__+"_"+item[3]
             
-        return samples
+        return samples #返回最终获取的数据样本samples
 
 
 
-    def get_uncertain_model_outlier_samples(self, model, outlier_model, unlabeled_data, validation_data, method, feature_method,
-                                                        perc_uncertain = 0.1, number=10, limit=10000): 
+    def get_uncertain_model_outlier_samples(self, model, outlier_model, unlabeled_data, validation_data, method, feature_method, perc_uncertain = 0.1, number=10, limit=10000): 
         """Gets the most uncertain items and samples the biggest model outliers among them
         
         Keyword arguments:
